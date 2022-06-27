@@ -1,0 +1,243 @@
+{% extends '../base.html' %}
+
+{% block my-app %}
+{% verbatim %}
+    <div style="position: sticky; top: 0; padding: 5px; background-color: white; z-index: 999">
+        <el-button type="primary" icon="el-icon-plus" size="medium" @click="showNewLabelDialog()">添加标签</el-button>
+    </div>
+    <div style="margin-bottom: 20px">
+        <table class="layui-table">
+            <colgroup>
+                <col min-width="160">
+                <col min-width="480">
+                <col>
+            </colgroup>
+        <thead>
+            <tr>
+                <th hidden="true">ID</th>
+                <th>标签序号</th>
+                <th>标签名称</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="item in labelsData">
+                <td hidden="true">{{ item.id }}</td>
+                <td>{{ item.label_index }}</td>
+                <td>{{ item.label_name }}</td>
+                <td>
+                    <el-button type="danger" icon="el-icon-delete" size="small" @click="delete_label(item.id)">删除</el-button>
+                    <el-button type="primary" icon="el-icon-edit" size="small"  @click="showEditDialog(item.id, item.label_index, item.label_name)">编辑</el-button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+    <!-- 弹出层 -->
+    <!-- 新建标签对话框 -->
+    <el-dialog
+        title="输入新标签"
+        :visible.sync="formNewLabel.isVisibleNewLabelDialog"
+        width="30%"
+    >
+        <el-form>
+            <el-form-item>
+                <el-input v-model="formNewLabel.new_label_name" v-on:focus="clearNewLabelDialogErr()"></el-input>
+                <el-label style="color: red"> {{ formNewLabel.err_new_label  }}</el-label>
+            </el-form-item>
+        </el-form>
+        <div slot="footer">
+            <el-button @click="closeNewLabelDialog()" tabindex="2">取消</el-button>
+            <el-button type="primary" @click="createNewLabel()" tabindex="1">创建</el-button>
+        </div>
+    </el-dialog>
+    <!-- 编辑标签对话框 -->
+    <el-dialog
+        title="标签编辑"
+        :visible.sync="formEditLabel.isVisibleEditLabelDialog"
+        width="30%"
+    >
+        <el-form>
+            <el-form-item label="标签序号">
+                <el-input v-model="formEditLabel.label_index"></el-input>
+            </el-form-item>
+            <el-form-item label="标签名称">
+                <el-input v-model="formEditLabel.label_name"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer">
+            <el-button @click="formEditLabel.isVisibleEditLabelDialog=false">取消</el-button>
+            <el-button type="primary" v-on:click="modifyLabelInfo()">修改</el-button>
+        </div>
+
+    </el-dialog>
+
+{% endverbatim %}
+{% endblock %}
+
+{%  block my-script %}
+    <script>
+        let vm = new Vue({
+            el: '#app',
+            data(){
+                return {
+                    formNewLabel:{
+                        isVisibleNewLabelDialog: false,
+                        new_label_name: '',
+                        err_new_label: ''  // 创建新标签时候的报错
+                    },
+                    formEditLabel:{
+                        isVisibleEditLabelDialog: false,
+                        label_index: '',
+                        label_name: '',
+                        label_id: ''
+                    },
+                    labelsData: [],
+                }
+            },
+            methods: {
+                // 新建标签业务逻辑
+                closeNewLabelDialog(){
+                    this.formNewLabel.isVisibleNewLabelDialog = false
+                    this.formNewLabel.new_label_name = ''
+                },
+                showNewLabelDialog(){
+                    // 弹出新建标签的对话框表单
+                    this.formNewLabel.isVisibleNewLabelDialog = true
+                    console.log()
+                },
+                createNewLabel(){
+                    // 校验new_label_name
+                    let has_err = false
+                    let new_label_name = this.formNewLabel.new_label_name.trim()
+                    if(new_label_name.length < 2){
+                        this.formNewLabel.err_new_label = '标签长度至少为2个字符'
+                        has_err = true
+                    }
+                    if(new_label_name.length > 10){
+                        this.formNewLabel.err_new_label = '标签长度不能大于10个字符'
+                        has_err = true
+                    }
+                    if(has_err){
+                        return
+                    }
+                    axios.post('/api/todos/labels/', {
+                        label_name: new_label_name
+                    })
+                    .then(rsp=>{
+                        let data = rsp.data
+                        if(data.msg === '创建成功'){
+                            this.formNewLabel.isVisibleNewLabelDialog = false
+                            this.formNewLabel.new_label_name = ''
+                            this.$message({
+                              message: '创建成功',
+                              type: 'success'
+                            });
+                            // 重新获取标签列表
+                            this.updateLabelList()
+                        }
+                    })
+                    .catch(ev=>{
+                        let detail = ev.response.data.detail
+                        if(detail){
+                            this.formNewLabel.err_new_label = detail
+                        }
+                    })
+                },
+                updateLabelList(){
+                    axios.get('/api/todos/labels/list/')
+                    .then(rsp=>{
+                        let data = rsp.data.data
+                        vm.labelsData = data
+                        console.log(rsp, data)
+                    })
+                },
+                clearNewLabelDialogErr(){
+                    this.formNewLabel.err_new_label = ''
+                },
+
+                // 删除标签业务逻辑
+                delete_label(label_id){
+                    this.$confirm("确认删除？", "提示",{
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: "warning"
+                    })
+                    .then(()=>{
+                        axios.delete('/api/todos/labels/', {
+                            data: {
+                                id: label_id
+                            }
+                        })
+                        .then(rsp=>{
+                            this.updateLabelList()
+                            this.$message({message: rsp.data.msg, type: "success"})
+                        })
+                        .catch(ev=>{
+                            let detail = ev.response.data.detail
+                            if(detail != undefined){
+                                this.$message({message: detail, type: "error"})
+                            }
+                        })
+                    })
+                },
+                // 修改标签的业务逻辑
+                showEditDialog(label_id, label_index, label_name){
+                    this.formEditLabel.label_id = label_id
+                    this.formEditLabel.label_index = label_index
+                    this.formEditLabel.label_name = label_name
+                    this.formEditLabel.isVisibleEditLabelDialog = true
+                },
+                modifyLabelInfo(){
+                    // 表单校验
+                    // 校验标签
+                    let label_index= parseInt(this.formEditLabel.label_index)
+                    let new_label_name = this.formEditLabel.label_name.trim()
+
+                    if(isNaN(label_index)){
+                        this.$message({message: '标签序号必须为非0整数', type: "error"})
+                        return
+                    }
+                    if(label_index === 0){
+                        this.$message({message: '标签序号必须为非0整数', type: "error"})
+                        return
+                    }
+                    // 校验标签名称
+                    if(new_label_name.length < 2){
+                        this.$message({message: '标签长度至少为2个字符', type: "error"})
+                        return
+                    }
+                    if(new_label_name.length > 10){
+                        this.$message({message: '标签长度不能大于10个字符', type: "error"})
+                        return
+                    }
+                    // 提交表单
+                    axios.put('/api/todos/labels/', {
+                        id: this.formEditLabel.label_id,
+                        label_index: this.formEditLabel.label_index,
+                        label_name: this.formEditLabel.label_name,
+                    })
+                    .then(rsp=>{
+                        this.formEditLabel.isVisibleEditLabelDialog = false
+                        this.updateLabelList()
+                    })
+                    .catch(ev=>{
+                        let detail = ev.response.data.detail
+                        if(detail != undefined){
+                            this.$message({message: detail, type: "error"})
+                        }
+                    })
+
+                }
+            },
+        })
+    </script>
+    <script>
+        axios.get('/api/todos/labels/list/')
+        .then(rsp=>{
+            let data = rsp.data.data
+            vm.labelsData = data
+            console.log(rsp, data)
+        })
+    </script>
+{%  endblock %}

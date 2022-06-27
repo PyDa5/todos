@@ -1,0 +1,529 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block my-head %}
+    <link rel="stylesheet" href="{% static '/css/todos.css' %}">
+{% endblock %}
+
+{% block title %}
+    欢迎页
+{% endblock %}
+
+{% block my-app %}
+    {% verbatim %}
+    <!-- 筛选条件 -->
+    <div id="todo-filter">
+        <el-form :inline="true">
+            <el-form-item label="标签">
+                <el-select
+                        size="medium"
+                        v-model="formRetrieve.selectedLabel"
+                        clearable
+                        @change="retrieveTodos"
+                        :trigger-on-focus="true">
+                    <el-option v-for="labelItem in formRetrieve.labelsData" :label="labelItem.label_name" :value="labelItem.id"></el-option>
+                </el-select>
+            </el-form-item>
+
+            <el-form-item label="状态">
+                <el-select v-model="formRetrieve.selectedStatus" clearable size="medium" @change="retrieveTodos">
+                    <el-option label="待处理" value="1"></el-option>
+                    <el-option label="处理中" value="2"></el-option>
+                    <el-option label="已完成" value="3"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="关键词">
+                <el-input v-model="formRetrieve.keyword"
+                          placeholder="结果中检索"
+                          clearable
+                          size="medium"
+                          @keyup.enter.native="retrieveTodos()"
+                ></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" icon="el-icon-search" size="medium" @click="retrieveTodos">查询</el-button>
+                <el-button type="primary" icon="el-icon-circle-plus-outline" size="medium" @click="showNewTodoDialog">创建</el-button>
+                <el-button type="info" icon="el-icon-circle-close" size="medium" @click="resetRetrieveParams">重置</el-button>
+            </el-form-item>
+            <el-form-item>
+                <el-switch v-model="useCardStyle"
+                           active-text="卡片展示"
+                           size="medium"
+                           inactive-text=""
+                           @change="setMyTodoStyle()"
+                ></el-switch>
+            </el-form-item>
+        </el-form>
+    </div>
+
+    <!-- 卡片展示区域方式1 -->
+    <div v-show="useCardStyle">
+        <div id="todo-card-list">
+            <el-card class="box-card my-todo-card"
+                     shadow="hover"
+                     v-for="todo in formTodos.todos">
+                <div slot="header" class="clearfix">
+                    <div class="todo-create_time">
+                        <span>{{ todo.create_time }}</span>
+                        <i class="el-icon-more" @click="showCommentListDialog(todo.id)"></i>
+                    </div>
+                    <div class="todo-username-layout">
+                        <span class="todo-username">{{ todo.username }}</span>
+                    </div>
+                </div>
+                <div class="todo-content" @dblclick="showNewRemarkDialog(todo.id)">{{ todo.content }}</div>
+                <div class="todo-footer">
+                    <div><el-tag type="success">{{ todo.label_name }}</el-tag></div>
+                    <div class="todo-footer-layout">
+                        <!-- TODO状态 -->
+                        <span>
+                            <el-button class="icon-btn" v-if="todo.status_name=='待处理'" type="info" icon="el-icon-check" round @click="markAsDone(todo.id)"></el-button>
+                            <el-button class="icon-btn" v-if="todo.status_name=='处理中'" type="info" icon="el-icon-check" round @click="markAsDone(todo.id)"></el-button>
+                            <el-button class="icon-btn" v-if="todo.status_name=='已完成'" type="success"  icon="el-icon-check" round @click="markAsDoing(todo.id)"></el-button>
+                        </span>
+                        <!-- 删除卡片 -->
+                        <el-button class="icon-btn" slot="reference" type="danger" icon="el-icon-delete" round v-on:dblclick.native="deleteTodo(todo.id)"></el-button>
+                        <!-- 新增备注 -->
+                        <el-button class="icon-btn" type="warning" icon="el-icon-edit" round @click="showNewRemarkDialog(todo.id)"></el-button>
+
+                    </div>
+                </div>
+            </el-card>
+        </div>
+        <div class="todo-pagination-container"
+             style="">
+            <el-pagination
+              @size-change="handleTodoSizeChange"
+              @current-change="handleTodoCurrentChange"
+              :current-page="currentPage"
+              :page-sizes="[10, 20, 50, 100]"
+              :page-size="formRetrieve.pageSize"
+              :pager-count="5"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="todoCount"
+                style="margin-bottom: 10%">
+            </el-pagination>
+        </div>
+    </div>
+
+
+    <!-- 卡片展示区域方式2(表格) -->
+    <!-- 左固定，右自适应 -->
+    <div id="my-todo-table-container" v-show="!useCardStyle">
+        <div class="user-comment-layout">
+            <div class="title">跟进记录</div>
+            <el-timeline class="time-line" reverse="false">
+                <el-timeline-item
+                  v-for="(todo, index) in commentDetails"
+                  :key="index"
+                  :timestamp="todo.create_time"
+                  color="#0bbd87"
+                  placement="top">
+                    <div class="content">{{ todo.content }}</div>
+                    <div class="username">
+                        <el-tag type="success" size="small" round>{{ todo.username }}</el-tag>
+                    </div>
+                    <div class=""></div>
+                </el-timeline-item>
+            </el-timeline>
+        </div>
+        <div style="width: 100%;">
+            <div class="my-todo-table-layout">
+                <table id="todo-table">
+                    <thead>
+                        <tr>
+                            <th hidden="true">ID</th>
+                            <th class="todo-column-content">内容</th>
+                            <th class="todo-column-label">标签</th>
+                            <th class="todo-column-creator">创建人</th>
+                            <th class="todo-column-create-time">创建时间</th>
+                            <th class="todo-column-status">状态</th>
+                            <th class="todo-column-actions">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="todo in formTodos.todos" @click="updateCommentDetails(todo.id)" v-on:dblclick="showNewRemarkDialog(todo.id)">
+                            <td hidden="true">{{ todo.id }}</td>
+                            <td class="todo-content todo-column-content">{{ todo.content }}</td>
+                            <td class="todo-column todo-column-label">{{ todo.label_name }}</td>
+                            <td class="todo-column todo-column-creator">{{ todo.username }}</td>
+                            <td class="todo-column todo-column-create-time">{{ todo.create_time }}</td>
+                            <td class="todo-column todo-column-status">
+                                <span>
+                                    <el-button class="icon-btn" v-if="todo.status_name=='待处理'" type="info" icon="el-icon-check" round @click="markAsDone(todo.id)"></el-button>
+                                    <el-button class="icon-btn" v-if="todo.status_name=='处理中'" type="info" icon="el-icon-check"  round @click="markAsDone(todo.id)"></el-button>
+                                    <el-button class="icon-btn" v-if="todo.status_name=='已完成'" type="success"  icon="el-icon-check" round @click="markAsDoing(todo.id)"></el-button>
+                                </span>
+                            </td>
+                            <td class="todo-column todo-column-actions">
+                                <!-- 删除卡片 -->
+                                <el-button slot="reference" type="danger" icon="el-icon-delete" size="mini" v-on:dblclick.native.stop="deleteTodo(todo.id)" >删除</el-button>
+                                <!-- 新增备注 -->
+                                <el-button type="warning" icon="el-icon-edit" size="mini" @click="showNewRemarkDialog(todo.id)">备注</el-button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="todo-pagination-container">
+                <el-pagination
+                  @size-change="handleTodoSizeChange"
+                  @current-change="handleTodoCurrentChange"
+                  :current-page="currentPage"
+                  :page-sizes="[10, 20, 50, 100]"
+                  :page-size="formRetrieve.pageSize"
+                  :pager-count="5"
+                  layout="total, sizes, prev, pager, next, jumper"
+                  :total="todoCount">
+                </el-pagination>
+            </div>
+            <div class="todo-label-selector">
+                <el-button v-for="labelItem in formRetrieve.labelsData"
+                           size="mini"
+                           round
+                        @click="updateSelectedLabel(labelItem.id)">
+                    {{ labelItem.label_name }}
+                </el-button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 弹出层-新建任务 -->
+    <el-dialog
+      id="dialogNewTodo"
+      title="新建任务"
+      :visible.sync="isVisibleNewTodoDialog"
+      @close="isVisibleNewTodoDialog=false"
+      direction="ltr"
+      :with-header="false">
+        <el-form style="padding-right: 20px" label-width="80px">
+            <el-form-item label="任务内容">
+                <el-input
+                        type="textarea"
+                        v-model="formNewTask.content"
+                        :autosize="{minRows:10,maxRows:15}"
+                        id="newTodoTextarea"
+                ></el-input>
+            </el-form-item>
+            <el-form-item label="分类标签">
+                <el-select v-model="formNewTask.label_id">
+                  <el-option v-for="item in formRetrieve.labelsData" :label="item.label_name" :value="item.id"></el-option>
+                </el-select>
+
+            </el-form-item>
+            <el-form-item style="display: flex; justify-content: flex-end">
+                <el-button type="primary" v-on:click="createNewTask()">立即创建</el-button>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+
+    <!-- 弹出层-评论时间线 -->
+    <el-drawer
+            title="跟进记录"
+            :visible.sync="isVisibleCommentDetailsDialog"
+            direction="ltr"
+            @close="isVisibleCommentDetailsDialog=false"
+    >
+        <el-timeline class="drawer-timeline" reverse="false">
+            <el-timeline-item
+              v-for="(todo, index) in commentDetails"
+              :key="index"
+              :timestamp="todo.create_time"
+              color="#0bbd87"
+              placement="top">
+                <div class="content">{{ todo.content }}</div>
+                <div class="username">
+                    <el-tag type="success" size="small" round>{{ todo.username }}</el-tag>
+                </div>
+                <div class=""></div>
+            </el-timeline-item>
+          </el-timeline>
+    </el-drawer>
+
+    <!-- 弹出层-todo备注 -->
+    <el-dialog
+            title="添加备注"
+            :visible.sync="isVisibleNewRemark"
+            @close="isVisibleNewRemark=false"
+    >
+        <el-input type="textarea" v-model="formNewRemark.content" :autosize="{ minRows: 5}" ></el-input>
+        <div style="display: flex; justify-content: flex-end">
+            <el-button type="primary" @click="createNewRemark()">提交</el-button>
+        </div>
+    </el-dialog>
+
+    {% endverbatim %}
+{% endblock %}
+
+{% block my-script %}
+    <script>
+        let vm = new Vue({
+            el: '#app',
+            data: {
+                // 备注表单
+                formNewRemark: {
+                    content: '',
+                    todoId: ''
+                },
+                // 检索区域
+                formRetrieve:{
+                    labelsData: [],
+                    status: [],
+
+                    keyword: '',  // 检索关键词
+                    selectedLabel: '', // 标签ID
+                    selectedStatus: '2', // TODO状态
+                    pageSize: 10,  // 分页大小
+                    pageNo: 1, // 页码
+                },
+                // todo区域
+                formTodos: {
+                    todos: [],
+                },
+                // 新建任务
+                formNewTask: {
+                    content: '',
+                    label_id: '',
+                    automaticDropdown: false  //自动展开
+                },
+                // 评论时间线
+                commentDetails:[],
+                // 弹出层变量
+                isVisibleNewTodoDialog: false,
+                isVisibleCommentDetailsDialog: false,
+                isVisibleNewRemark: false,
+                useCardStyle: false,
+
+                activeName: '1',
+                // 分页查询
+                currentPage: 1
+            },
+            methods: {
+                // 用户偏好
+                setMyTodoStyle(){
+                    axios.post('/api/todos/preference/style/', {
+                        type: this.useCardStyle?'card':'table'
+                    })
+                },
+                getMyTodoStyle(){
+                    axios.get('/api/todos/preference/style/')
+                    .then(rsp=>{
+                        let data = rsp.data.data
+                        if(data!=undefined){
+                            if(data === 'card'){
+                                this.useCardStyle = true
+                            }else{
+                                this.useCardStyle = false
+                            }
+                        }
+                    })
+                },
+                // 分页功能
+                handleTodoSizeChange(pageSize){
+                    this.formRetrieve.pageNo = 1
+                    this.formRetrieve.pageSize = pageSize
+                    this.retrieveTodos()
+                },
+                handleTodoCurrentChange(pageNo){
+                    this.formRetrieve.pageNo = pageNo
+                    this.retrieveTodos()
+                },
+                // 备注板块
+                showNewRemarkDialog(todoId){
+                    this.isVisibleNewRemark = true
+                    this.formNewRemark.todoId = todoId
+                },
+                createNewRemark(){
+                    if(this.formNewRemark.content.trim() ===''){
+                        this.$message({message: '备注不能为空', type: 'error'})
+                        return
+                    }
+                    axios.post('/api/todos/remarks/', {
+                        root_id: this.formNewRemark.todoId,
+                        content: this.formNewRemark.content
+                    })
+                    .then(rsp=>{
+                        // this.$message({message: '备注成功', type: 'success'})
+                        this.updateCommentDetails(this.formNewRemark.todoId)
+                        this.formNewRemark.todoId = ''
+                        this.formNewRemark.content = ''
+                    })
+                    .catch(ev=>{
+                        let detail = ev.response.data.detail
+                        if(detail !== undefined){
+                            this.$message({message: detail, type: 'error'})
+                        }else{
+                            this.$message({message: '操作失败', type: 'error'})
+                        }
+                    })
+                    this.isVisibleNewRemark = false
+                },
+                // 评论板块
+                updateCommentDetails(todoId){
+                    axios.get(`/api/todos/remarks/?root_id=${todoId}`)
+                    .then(rsp=>{
+                        this.commentDetails = rsp.data.data
+                    })
+                    .catch(ev=>{
+                        this.$message({message: '获取备注详情失败', type: "error"})
+                    })
+                },
+                showCommentListDialog(todoId){
+                    axios.get(`/api/todos/remarks/?root_id=${todoId}`)
+                    .then(rsp=>{
+                        this.isVisibleCommentDetailsDialog = true
+                        this.commentDetails = rsp.data.data
+                    })
+                    .catch(ev=>{
+                        this.$message({message: '获取备注详情失败', type: "error"})
+                    })
+                },
+                // 新建任务板块
+                showNewTodoDialog(){
+                    this.isVisibleNewTodoDialog = true
+                },
+                createNewTask(){
+                    axios.post('/api/todos/', {
+                        label_id: this.formNewTask.label_id,
+                        content: this.formNewTask.content
+                    })
+                    .then(rsp=>{
+                        this.formNewTask = {
+                            content: '',
+                            label_id: ''
+                        }
+                        // this.$message({message: '创建成功', type: "success"})
+                        this.isVisibleNewTodoDialog = false
+                        this.retrieveTodos()
+                    })
+                    .catch(ev=>{
+                        let detail = ev.response.data.detail
+                        let label_err = ev.response.data.label_id
+                        let content_err = ev.response.data.content
+                        if(detail != undefined){
+                            this.$message({message: detail, type: "error"})
+                        }
+                        if(label_err != undefined){
+                            this.$message({message: `<分类标签>${label_err[0]}`, type: "error"})
+                        }
+                        if(content_err != undefined){
+                            this.$message({message: `<任务内容>${content_err[0]}`, type: "error"})
+                        }
+                    })
+                },
+                retrieveTodos(){
+                    let query_params = ''
+                    let params = {
+                        status_id: this.formRetrieve.selectedStatus,
+                        label_id: this.formRetrieve.selectedLabel,
+                        page_size: this.formRetrieve.pageSize,
+                        page: this.formRetrieve.pageNo,
+                        keyword: this.formRetrieve.keyword
+                    }
+                    for(let k in params){
+                        let v = params[k]
+                        let field = `${k}=${v}`
+                        if(query_params !== ''){
+                            query_params += '&' + field
+                        }
+                        else{
+                            query_params = field
+                        }
+                    }
+                    axios.get(`/api/todos/list/?${query_params}`)
+                    .then(rsp=>{
+                        let data = rsp.data.data
+                        this.formTodos.todos = data
+                        // this.commentDetails = data[0]
+                        let firstTodoId = data[0].id
+                        this.updateCommentDetails(firstTodoId)
+                    })
+                    .catch(ev=>{
+
+                    })
+                },
+                resetRetrieveParams(){
+                    this.formRetrieve.selectedStatus = '2'
+                    this.formRetrieve.selectedLabel = ''
+                    this.formRetrieve.pageSize = 10
+                    this.formRetrieve.pageNo = 1
+                    this.formRetrieve.keyword = ''
+                    this.retrieveTodos()
+                },
+                updateLabelList(){
+                    axios.get('/api/todos/labels/list/')
+                    .then(rsp=>{
+                        let data = rsp.data.data
+                        this.formRetrieve.labelsData = data
+                    })
+                },
+                updateSelectedLabel(todoId){
+                    this.formRetrieve.selectedLabel = todoId
+                    this.retrieveTodos()
+                },
+                markAsDone(todo_id){
+                    const DONE = 3
+                    axios.put('/api/todos/', {
+                        id: todo_id,
+                        status_id: DONE
+                    })
+                    .then(rsp=>{
+                        this.retrieveTodos()
+                    })
+                },
+                markAsDoing(todo_id){
+                    const DOING = 2
+                    axios.put('/api/todos/', {
+                        id: todo_id,
+                        status_id: DOING
+                    })
+                    .then(rsp=>{
+                        this.retrieveTodos()
+                    })
+                },
+                deleteTodo(todoId){
+                    axios.delete('/api/todos/', {
+                        data: {
+                            id: todoId
+                        }
+                    }).then(rsp=>{
+                        this.retrieveTodos()
+                        // this.$message({message: '删除成功', type: 'success'})
+                    })
+                },
+                // 跟进TODO
+                followUp(rootId, parentId){
+
+                }
+            },
+            computed: {
+                todoCount(){
+                    // return this.formTodos.todos.length
+                    return 666666
+                },
+                 formTodosFilter(){
+                     let srcFormTodos = this.formTodos
+                     // 获取选择的label
+                     let selectedLabel = this.formRetrieve.selectedLabel
+                     let selectedStatus = this.formRetrieve.selectedStatus
+                     let keyword = this.formRetrieve.keyword.trim()
+                     // 获取选择的状态
+                     let filterData = []
+                     return {
+                         todos: srcFormTodos.todos
+                     }
+                 },
+                // 关键词检索
+                filterTodoByKeyword(keyword, cb){
+                    return cb([{"value": 1, "data": "666"}])
+                }
+            },
+            mounted: function (){
+                this.getMyTodoStyle()
+                this.updateLabelList()
+                this.retrieveTodos()
+            }
+        })
+    </script>
+{% endblock %}

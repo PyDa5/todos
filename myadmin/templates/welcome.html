@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}
+    欢迎页
+{% endblock %}
+
+{% block my-app %}
+    {% verbatim %}
+    {% endverbatim %}
+{% endblock %}
+
+{% block my-script %}
+    <script>
+        let vm = new Vue({
+            el: '#app',
+            data: {
+                activeTabName: 'todo'
+            }
+        })
+    </script>
+{% endblock %}

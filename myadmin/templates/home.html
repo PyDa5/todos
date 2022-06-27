@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css"  href="{% static 'libs/layui/css/layui.css' %}">
+    <link rel="stylesheet" href="{% static '/libs/element-ui/lib/theme-chalk/index.css' %}">
+
+    <script src="{% static 'libs/layui/layui-2.6.8.js' %}"></script>
+    <script src="{% static 'libs/jquery-3.6.0.min.js' %}"></script>
+
+    <script src="{% static 'libs/axios.min.js' %}"></script>
+    <script src="{% static '/libs/vue.min.js' %}"></script>
+    <script src="{% static '/libs/element-ui/lib/index.js' %}"></script>
+
+    <title>Home</title>
+</head>
+<body style="height: 100%">
+<div id="app" style="height: 100%">
+<!--    侧边菜单栏-->
+    <div style="display: flex; flex-direction: row; height: 100%">
+        {% verbatim %}
+        <div class="aside" style="width: 200px; height: 100%; background-color: #336699" >
+            <el-menu v-for="submenus, menu_title in userMenus"
+                     background-color="#336699"
+                     text-color="#fff"
+                     active-text-color="#ffd04b"
+                     unique-opened="true"
+                     :index="menu_title">
+                <el-submenu text-color="#eee">
+                    <template slot="title">
+                        <span>{{ menu_title }}</span>
+                    </template>
+                    <el-menu-item v-for="submenu in submenus" @click="updateIFrame(submenu.path, submenu.title)" :index="submenu.path">{{ submenu.title }}</el-menu-item>
+                </el-submenu>
+            </el-menu>
+        </div>
+        {% endverbatim %}
+
+        <div style="position:fixed; left:200px; right: 0px; height: 100%; ">
+<!--        右顶部信息栏-->
+        {% verbatim %}
+        <div class="header" style="width:inherit; height: 50px;
+        display: flex; flex-direction: row; justify-content: space-between;
+        align-items: center; padding: 0px 5px 0px 5px;font-size: medium;
+        border-bottom-style: solid;border-bottom-color: #eeeeee;border-bottom-width: 1px;
+        ">
+          <div id="submenu_title"></div>
+            <div style="display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-content: center;
+                align-items: center;
+                ">{{ username }}<svg @click="logout()" t="1652513755547" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2056" width="36" height="36"><path d="M915.761833 551.036062c0 223.567845-181.237761 404.803559-404.803559 404.803559-223.569892 0-404.805606-181.235714-404.805606-404.803559 0-152.956647 85.011162-285.812491 210.200396-354.652346 0.960885-0.663102 2.026146-1.159406 3.040243-1.744737 0.820692-0.441045 1.595334-0.950651 2.418073-1.384533l0.029676 0.057305c5.658883-2.778276 11.93789-4.477988 18.666128-4.477988 23.533996 0 42.611493 19.079544 42.611493 42.611493 0 16.439414-9.41237 30.541597-23.047926 37.647435l0.047072 0.096191c-100.477412 53.886281-168.848593 159.853731-168.848593 281.849226 0 176.561251 143.130861 319.692113 319.690066 319.692113 176.561251 0 319.692113-143.130861 319.692113-319.692113 0-121.528867-67.819618-227.200582-167.666674-281.280268l0.01535-0.031722c-14.281261-6.881734-24.213471-21.36561-24.213471-38.279838 0-23.531949 19.077497-42.611493 42.611493-42.611493 6.986111 0 13.480013 1.840928 19.298532 4.821819l0.047072-0.094144c1.214664 0.647753 2.362814 1.399883 3.571339 2.057869 0.334621 0.212848 0.700965 0.36839 1.029446 0.592494C830.661643 265.012769 915.761833 397.978107 915.761833 551.036062zM510.952134 593.640392c-23.533996 0-42.611493-19.077497-42.611493-42.61354L468.340641 103.609753c0-23.531949 19.077497-42.609447 42.611493-42.609447s42.61354 19.077497 42.61354 42.609447l0 447.417099C553.565674 574.563918 534.48613 593.640392 510.952134 593.640392z" p-id="2057"></path></svg>
+          </a>
+          </div>
+        </div>
+        {% endverbatim %}
+<!--        右main区域-->
+        <div class="main" style="width:100%; height: 100%">
+            <iframe id="inlineFrameMain"
+                title="Inline Frame Example"
+                width="100%"
+                height="100%"
+                style="border: none;"
+                src="/my-admin/todos/tasks/">
+            </iframe>
+
+        </div>
+    </div>
+    </div>
+
+</div>
+<script>
+    let vm = new Vue({
+        el: '#app',
+        data(){
+            return {
+                username: '',
+                userMenus: {}
+            }
+        },
+        methods: {
+            getUserMenus(){
+                axios.get('/api/menus/')
+                .then(rsp=>{
+                    this.userMenus = rsp.data.data
+                    console.log((this.userMenus))
+                })
+            },
+            getUserInfo(){
+                axios.get('/api/user/username/')
+                .then(rsp=>{
+                     this.username = rsp.data.data
+                })
+            },
+            logout(){
+                $.ajax({
+                    url: '/api/user/logout/',
+                    type: 'get',
+                    success: function (data) {
+                        $(location).attr('href', '/my-admin/login/')
+                    },
+                    error: function (err) {
+                        $(location).attr('href', '/my-admin/login/')
+                    },
+                })
+            },
+            updateIFrame(path, title){
+                $("#inlineFrameMain").attr('src', path)
+                $("#submenu_title").text(title)
+            }
+        },
+        mounted(){
+            this.getUserInfo()
+            this.getUserMenus()
+        }
+    })
+</script>
+</body>
+</html>

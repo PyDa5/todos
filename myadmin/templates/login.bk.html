@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="{% static '/libs/layui/css/layui.css' %}">
+    <link rel="stylesheet" href="{% static '/libs/element-ui/lib/theme-chalk/index.css' %}">
+
+    <script src="{% static '/libs/axios.min.js' %}"></script>
+
+    <script src="{% static '/libs/vue.min.js' %}"></script>
+    <script src="{% static '/libs/element-ui/lib/index.js' %}"></script>
+
+    <script src="{% static '/libs/jquery-3.6.0.min.js' %}"></script>
+    <script src="{% static '/libs/layer/layer.js' %}"></script>
+</head>
+{% verbatim %}
+<body>
+    <div id="app">
+        <div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">用户名</label>
+                <div class="layui-input-inline">
+                    <input class="layui-input" name="username" type="text" placeholder="用户名">
+                    <p id="username_err" style="color: red"></p>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">密码</label>
+                <div class="layui-input-inline">
+                    <input class="layui-input"
+                           name="password"
+                           type="password"
+                           placeholder="密码"
+                    >
+                    <p id="password_err" style="color: red"></p>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button class="layui-btn" onclick="login()">登陆</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function login(){
+            $('#username_err').text('')
+            $('#password_err').text('')
+            $.ajax({
+                url: '/api/user/login/',
+                type: 'post',
+                data: {
+                    'username': $('input[name="username"]:first').val(),
+                    'password': $('input[name="password"]:first').val()
+                },
+                success: function (data) {
+                    if(['登陆成功', '用户已登录'].indexOf(data.msg) !== -1){
+                        $(location).attr('href', '/my-admin/home/')
+                    }else{
+                        layer.msg(data.detail)
+                    }
+                },
+                error: function (rsp) {
+                    var data = rsp.responseJSON
+                    if('username' in data){
+                        $('#username_err').text(data.username[0])
+                    }
+                    if('password' in data){
+                        $('#password_err').text(data.password[0])
+                    }
+                }
+                }
+            )
+        }
+
+    </script>
+
+    <script>
+        let vm = new Vue({
+            el: '#app',
+            data: {
+                foo: 'bar'
+            }
+        })
+    </script>
+</body>
+{% endverbatim %}
+</html>

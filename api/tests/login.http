@@ -1,0 +1,10 @@
+###
+# 登陆
+POST http://localhost:8000/api/user/login
+Content-Type: application/json
+
+{
+  "username": {{username}},
+  "password": {{password}}
+}
+

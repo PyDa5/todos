@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <title>{% block title %}Admin{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static '/libs/layui/css/layui.css' %}">
+    <link rel="stylesheet" href="{% static '/libs/element-ui/lib/theme-chalk/index.css' %}">
+
+    <script src="{% static '/libs/axios.min.js' %}"></script>
+
+    <script src="{% static '/libs/vue.min.js' %}"></script>
+    <script src="{% static '/libs/element-ui/lib/index.js' %}"></script>
+
+    <script src="{% static '/libs/jquery-3.6.0.min.js' %}"></script>
+    <script src="{% static '/libs/layui/layui-2.6.8.js' %}"></script>
+    <script src="{% static '/libs/layer/layer.js' %}"></script>
+
+    {% block my-head %}
+    {% endblock %}
+
+    {% block my-css %}
+    {% endblock %}
+
+</head>
+<body>
+<div id="app" style="height: 100vh;">
+    {% block my-app %}
+    {% endblock %}
+</div>
+
+{% block my-script %}
+    <script>
+        let vm = new Vue({
+            el: "#app"
+        })
+    </script>
+{% endblock %}
+
+</body>
+</html>

@@ -1,0 +1,218 @@
+/* 检索区域*/
+#todo-filter{
+    padding-top: 10px;
+    padding-bottom: 0px;
+    background-color: white;
+    border-bottom-style: solid;
+    border-bottom-color: #eeeeee;
+    border-bottom-width: 2px;
+    opacity: 0.95
+}
+
+/* todo卡片列表*/
+#todo-card-list{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    ustify-content: flex-start;
+    padding-top: 10px;
+    padding-left: 20px;
+    /*padding-bottom: 120px;*/
+    height: fit-content;
+    /*min-height: 100vh;*/
+    align-content: flex-start;
+}
+
+/* 卡片 */
+div.my-todo-card{
+    width: 45%;
+    margin-bottom: 20px;
+    margin-right: 2%;
+    height: fit-content;
+}
+
+div.my-todo-card .todo-create_time{
+    display: flex;
+    justify-content: space-between;
+}
+
+div.my-todo-card .todo-username-layout{
+    display: flex;
+    justify-content: flex-start;
+    font-size: smaller;
+    margin-top: 5px
+}
+
+div.my-todo-card .todo-username{
+    color: grey;
+    font-size: x-small
+}
+
+div.my-todo-card .todo-content{
+    overflow: auto;
+    height: 90px;
+    padding-bottom: 20px;
+    word-wrap:break-word;
+    white-space: pre-wrap;
+}
+
+div.my-todo-card .todo-footer{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.todo-footer .todo-footer-layout{
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 5px
+}
+
+.todo-footer .icon-btn{
+    padding: 2px;
+    margin: 5px;
+}
+
+/* 表格布局 */
+#my-todo-table{
+    display: flex;
+    flex-direction: row;
+}
+#my-todo-table .user-comment-layout{
+    padding: 5px 10px 5px 10px;
+    border-right-style: dotted;
+    border-right-color: grey;
+    border-right-width: 1px;
+}
+
+#todo-table .icon-btn{
+    padding: 2px;
+    margin: 5px;
+}
+
+#my-todo-table-container {
+    display: flex;
+    flex-direction: row;
+}
+
+#my-todo-table-container .user-comment-layout .title{
+    padding: 5px 10px 10px 10px;
+    font-size: medium;
+    font-weight: bold
+}
+
+#my-todo-table-container .user-comment-layout .time-line{
+    width: 300px;
+    height: 720px;
+    word-wrap: break-word;
+    overflow-y:scroll;
+}
+
+/* 表格整体布局*/
+.my-todo-table-layout{
+    padding-top: 10px;
+    padding-left: 20px;
+    padding-bottom: 120px;
+    height: 40vh;
+    z-index: -1;
+    overflow-y: scroll;
+    border-bottom-style: solid;
+    border-bottom-width: 2px;
+    border-bottom-color: #eeeeee;
+}
+
+/* 表头设置*/
+#todo-table>thead{
+    text-align: center;
+    padding-bottom: 20px;
+}
+#todo-table>thead>tr{
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-color: #eeeeee
+}
+
+/*表行设置*/
+#todo-table>tbody>tr{
+    height: 48px;
+    margin-top: 10px;
+    border-style: none none dotted none;
+    border-color: #eeeeee;
+    border-width: 1px;
+}
+
+#todo-table>tbody>tr:hover{
+    background-color: #d3dce6;
+}
+
+/* 内容列设置*/
+#todo-table>tbody>tr>td.todo-content{
+    max-width: 200px;
+    overflow: hidden;
+    white-space: nowrap ;
+    text-overflow: ellipsis;
+}
+
+.todo-column-content{
+    min-width: 200px;
+    max-width: 200px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.todo-column-label{
+    min-width: 100px;
+    max-width: 100px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.todo-column-creator{
+    min-width: 60px;
+    max-width: 60px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.todo-column-create-time{
+    min-width: 100px;
+    max-width: 100px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.todo-column-status{
+    min-width: 30px;
+    max-width: 30px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+.todo-column-actions{
+    min-width: 200px;
+    max-width: 200px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.drawer-timeline{
+    overflow: auto;
+    padding-bottom: 10%;
+    padding-right: 10px;
+    height: 100%;
+}
+
+.todo-label-selector{
+    display: flex;
+    flex-flow: row wrap;
+    padding-left: 10px;
+    padding-top: 10px;
+}
+
+.todo-label-selector>button{
+    background-color: #f4f4f5;
+    border-color: #e9e9eb;
+    color: #909399;
+}
+
+/* 分页器 */
+.todo-pagination-container{
+    display: flex;
+    justify-content: flex-end;
+}

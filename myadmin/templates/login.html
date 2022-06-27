@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+
+    <link rel="stylesheet" href="{% static '/libs/layui/css/layui.css' %}">
+    <link rel="stylesheet" href="{% static '/libs/element-ui/lib/theme-chalk/index.css' %}">
+
+    <script src="{% static '/libs/axios.min.js' %}"></script>
+
+    <script src="{% static '/libs/vue.min.js' %}"></script>
+    <script src="{% static '/libs/element-ui/lib/index.js' %}"></script>
+
+    <script src="{% static '/libs/jquery-3.6.0.min.js' %}"></script>
+    <script src="{% static '/libs/layer/layer.js' %}"></script>
+</head>
+{% verbatim %}
+<body background="/static/img/login.jpg" style="background-size: cover">
+    <div id="app" style="display: flex; justify-content: space-around;">
+        <div style="position: fixed; height: 100vh; width: 480px; margin-top: 80px;">
+            <!-- 账号登陆 -->
+            <div :hidden="pageName!='login'" style="min-height: 360px;width: inherit; border-radius: 5px; background-color:#ffffff;">
+                <div style="display: flex; padding: 40px 0px 40px 0px; justify-content: space-around">
+                    <h2>账号登陆</h2>
+                </div>
+                <el-form class="login" label-position="right" :rules="rulesLogin" label-width="80px" :model="formLogin" style="padding-right: 40px">
+                    <el-form-item label="用户名">
+                        <el-input v-model="formLogin.username"
+                                  clearable="true"
+                                  @focus="clear_err_tip"
+                                  placeholder="请输入用户"
+                                  prefix-icon="el-icon-user"
+                        ></el-input>
+                        <el-label style="color: red">{{ formLogin.username_err }}</el-label>
+                    </el-form-item>
+                    <el-form-item label="密码">
+                        <el-input
+                                type="password"
+                                v-model="formLogin.password"
+                                clearable="true"
+                                @focus="clear_err_tip"
+                                placeholder="请输入密码"
+                                prefix-icon="el-icon-lock"
+                        ></el-input>
+                        <el-label style="color: red">{{ formLogin.password_err }}</el-label>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" style="width: 100%" @click="login">登陆</el-button>
+                    </el-form-item>
+                    <el-form-item style="display: flex;justify-content: right">
+                        <el-label>
+                            <span style="color: darkgrey" @click="switch_to_reset_password">找回密码</span>
+                            <span style="color: darkgrey"> | </span>
+                            <span style="color: #ffcc00" @click="switch_to_register()">立即注册</span>
+                        </el-label>
+                    </el-form-item>
+
+                </el-form>
+            </div>
+
+            <!--重置密码 -->
+            <div :hidden="pageName!='reset_password'" style="min-height: 360px;width: inherit; border-radius: 5px; background-color:#ffffff;">
+                <div style="display: flex; padding: 40px 0px 40px 0px; justify-content: space-around">
+                    <h2>重置密码</h2>
+                </div>
+                <el-form class="reset_pwd" label-position="right" label-width="80px" :model="formResetPassword" style="padding-right: 40px">
+                    <el-form-item label="邮箱">
+                        <el-input v-model="formResetPassword.email"
+                                  clearable="true"
+                                  @focus="clear_err_tip"
+                                  placeholder="请输入用户"
+                                  prefix-icon="el-icon-message"
+                                  id="formResetPassword_email"
+                        ></el-input>
+                        <el-label style="color: red">{{ formResetPassword.err_email }}</el-label>
+                    </el-form-item>
+
+                    <el-form-item label="新密码">
+                        <el-input v-model="formResetPassword.new_pwd1"
+                                  type="password"
+                                  clearable="true"
+                                  @focus="clear_err_tip"
+                                  prefix-icon="el-icon-lock"
+                                  id="formResetPassword_new_pwd1"
+                        ></el-input>
+                        <el-label style="color: red">{{ formResetPassword.err_new_pwd1 }}</el-label>
+                    </el-form-item>
+
+                    <el-form-item label="确认密码">
+                        <el-input
+                                type="password"
+                                v-model="formResetPassword.new_pwd2"
+                                clearable="true"
+                                @focus="clear_err_tip"
+                                placeholder="请输入密码"
+                                prefix-icon="el-icon-lock"
+                                id="formResetPassword_new_pwd2"
+
+                                v-on:input="get_reset_password_captcha()"
+                                v-on:blur="clear_errmsg_reset_password()"
+                        ></el-input>
+                        <el-label style="color: red">{{ formResetPassword.err_new_pwd2 }}</el-label>
+                    </el-form-item>
+
+                    <el-form-item :hidden="formResetPassword.hideCaptchaInput" label="验证码">
+                        <el-input
+                                v-model="formResetPassword.captcha"
+                                clearable="true"
+                                @focus="clear_err_tip"
+                                prefix-icon="el-icon-chat-dot-round"
+                                id="formResetPassword_captcha"
+                        ></el-input>
+                        <el-label style="color: red">{{ formResetPassword.err_captcha }}</el-label>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-label style="color: red">{{ formResetPassword.err_other }}</el-label>
+                    </el-form-item>
+                    <el-form-item :hidden="formResetPassword.hideCaptchaInput">
+                        <el-button type="primary" style="width: 100%" @click="reset_password">提交</el-button>
+                    </el-form-item>
+
+                    <el-form-item style="display: flex;justify-content: right">
+                        <el-label>
+                            <span  style="color: darkgrey" @click="switch_to_login()">账号登陆</span>
+                        </el-label>
+                    </el-form-item>
+
+                </el-form>
+            </div>
+
+            <!-- 用户注册 -->
+            <div :hidden="pageName!='register'" style="min-height: 360px;width: inherit; border-radius: 5px; background-color:#ffffff;">
+                <div style="display: flex; padding: 40px 0px 40px 0px; justify-content: space-around">
+                    <h2>用户注册</h2>
+                </div>
+                <el-form class="register" label-position="right" label-width="80px" :model="formRegister" style="padding-right: 40px">
+                    <el-form-item label="用户名">
+                        <el-input v-model="formRegister.username"
+                                  clearable="true"
+                                  @focus="clear_err_tip"
+                                  placeholder="请输入用户"
+                                  prefix-icon="el-icon-user"
+                        ></el-input>
+                        <el-label style="color: red">{{ formRegister.username_err }}</el-label>
+                    </el-form-item>
+
+                    <el-form-item label="邮箱">
+                        <el-input v-model="formRegister.email"
+                                  clearable="true"
+                                  @focus="clear_err_tip"
+                                  prefix-icon="el-icon-message"
+                        ></el-input>
+                        <el-label style="color: red">{{ formRegister.email_err }}</el-label>
+                    </el-form-item>
+
+                    <el-form-item label="密码">
+                        <el-input
+                                type="password"
+                                v-model="formRegister.password"
+                                clearable="true"
+                                @focus="clear_err_tip"
+                                placeholder="请输入密码"
+                                prefix-icon="el-icon-lock"
+                        ></el-input>
+                        <el-label style="color: red">{{ formRegister.password_err }}</el-label>
+                    </el-form-item>
+
+                    <el-form-item :hidden="!formRegister.has_send_register_captcha"  label="验证码">
+                        <el-input
+                                v-model="formRegister.captcha"
+                                clearable="true"
+                                @focus="clear_err_tip"
+                                prefix-icon="el-icon-chat-dot-round"
+                        ></el-input>
+                        <el-label style="color: red">{{ formRegister.captcha_err }}</el-label>
+                        <el-label style="color: red">{{ formRegister.other_err }}</el-label>
+                    </el-form-item>
+                    <el-form-item :hidden="!formRegister.has_send_register_captcha">
+                        <el-button type="primary" style="width: 100%" @click="register">立即注册</el-button>
+                    </el-form-item>
+                    <el-form-item :hidden="formRegister.has_send_register_captcha" >
+                        <el-button type="primary" style="width: 100%" @click="get_register_captcha">获取验证码</el-button>
+                    </el-form-item>
+
+                    <el-form-item style="display: flex;justify-content: right">
+                        <el-label>
+                            <span href="/my-admin/register/" style="color: #ffcc00" @click="switch_to_login()">账号登陆</span>
+                        </el-label>
+                    </el-form-item>
+
+                </el-form>
+            </div>
+
+        </div>
+            <!-- 弹出层 -->
+            <!-- 密码修改成功对话框 -->
+            <el-dialog
+              title="提示"
+              :visible.sync="formResetPassword.showResetPasswordSuccessDialog"
+              width="30%">
+              <span>密码修改成功</span>
+              <span slot="footer" class="dialog-footer">
+                <el-button type="primary" @click="formResetPassword.showResetPasswordSuccessDialog = false">确 定</el-button>
+              </span>
+            </el-dialog>
+    </div>
+
+    <script>
+        Vue.prototype.$axios = axios
+        let vm = new Vue({
+            el: '#app',
+            data: function(){
+                return {
+                    dialog: {
+                        title: '',
+                        visible: false,
+                        msg: ''
+                    },
+                    pageName: 'login',
+                    formLogin: {
+                        'username': '',
+                        'password': '',
+                        'username_err': '',
+                        'password_err': ''
+                    },
+                    rulesLogin: {
+                        username: {
+                            type: 'string',
+                            required: true,
+
+                        }
+                    },
+                    formRegister: {
+                        'username': '',
+                        'email': '',
+                        'password': '',
+                        'captcha': '',
+
+                        'username_err': '',
+                        'email_err': '',
+                        'password_err': '',
+                        'captcha_err': '',
+                        'other_err': '',
+
+                        'has_send_register_captcha': false
+
+                    },
+                    formResetPassword: {
+                        'email': '',
+                        'new_pwd1': '',
+                        'new_pwd2': '',
+                        'captcha': '',
+
+                        'err_email': '',
+                        'err_new_pwd1': '',
+                        'err_new_pwd2': '',
+                        'err_captcha': '',
+                        'err_other': '',
+
+                        'hideCaptchaInput': true,
+                        'hideSubmitButton': true,
+
+                        'showResetPasswordSuccessDialog': false,
+
+                    }
+                }
+            },
+            methods: {
+                login(){
+                    // 先清楚错误提示信息
+                    this.formLogin.password_err = ''
+                    this.formLogin.username_err = ''
+                    // 登陆
+                    axios.post('/api/user/login/', {
+                            username: this.formLogin.username,
+                            password: this.formLogin.password
+                        })
+                    .then(res=>{
+                        let data = res.data
+                        if('detail' in data){
+                            let detail = data['detail']
+                            if(detail === '用户不存在'){
+                                this.formLogin.username_err = '用户不存在'
+                            }
+                            else if(detail === '密码错误'){
+                                this.formLogin.password_err = '密码错误'
+                            }
+                            else {
+                                this.formLogin.password_err = detail
+                            }
+                        }else{
+                            // 成功跳转home页面
+                            $(location).attr('href', '/my-admin/home/')
+                        }
+                    })
+                    .catch(err=>{
+                        let data = err.response.data
+                        if('password' in data){
+                            this.formLogin.password_err = data['password'][0]
+                        }
+                        if('username' in data){
+                            this.formLogin.username_err = data['username'][0]
+                        }
+                    })
+                },
+                clear_err_tip(){
+                    this.formLogin.username_err = ''
+                    this.formLogin.password_err = ''
+
+                    this.formRegister.username_err = ''
+                    this.formRegister.password_err = ''
+                    this.formRegister.email_err = ''
+                    this.formRegister.captcha_err = ''
+                    this.formRegister.other_err = ''
+                },
+                switch_to_register(){
+                    // 切换操作类型
+                    this.pageName = 'register'
+                },
+                switch_to_login(){
+                    this.pageName = 'login'
+                },
+                register(){
+                    let has_err = false
+                    // 数据校验
+                    let username = this.formRegister.username.replace(' ', '')
+                    if(username.length <2 ){
+                        this.formRegister.username_err = '用户名需至少包含2个字符'
+                        has_err = true
+                    }
+                    if(username.length >20 ){
+                        this.formRegister.username_err = '用户名不能超过20个字符'
+                        has_err = true
+                    }
+                    // 邮箱校验
+                    let email = this.formRegister.email.replace(' ', '')
+                    let email_pattern = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/
+                    if(!email_pattern.test(email)){
+                        this.formRegister.email_err = '邮箱格式不正确'
+                        has_err = true
+                    }
+                    // 密码校验
+                    let password = this.formRegister.password.trim()
+                    if(password.length < 8){
+                        has_err =true
+                        this.formRegister.password_err = '密码长度不能少于8个字符'
+                    }
+                    // 验证码校验
+                    let captcha_pattern = /\d{6}/
+                    let captcha = this.formRegister.captcha.trim()
+                    if(!captcha_pattern.test(captcha)){
+                        has_err = true
+                        this.formRegister.captcha_err = '验证码为6位数字'
+                    }
+                    if(has_err){
+                        return
+                    }
+                    // 用户注册
+                    axios.post('/api/user/register/',{
+                        username: this.formRegister.username,
+                        password: this.formRegister.password,
+                        email: this.formRegister.email,
+                        captcha: this.formRegister.captcha
+                    })
+                    .then(rsp=>{
+                        let data = rsp.data
+                        if('detail' in data){
+                            this.formRegister.has_send_register_captcha = false
+                            let detail = data['detail']
+                            if(detail === '当前用户已被注册'){
+                                this.formRegister.username_err = detail
+                                this.formRegister.email_err = detail
+                            }
+                            else if(detail === '验证码已过期'){
+                                this.formRegister.captcha_err = detail
+                            }
+                            else {
+                                this.formRegister.other_err = detail
+                            }
+                        }
+                        if('msg' in data){
+                            let msg = data['msg']
+                            if(msg === '注册成功'){
+                                alert('注册成功')
+                                $(location).attr('href', '/my-admin/login')
+                            }
+                        }
+                    })
+                    .catch(err=>{
+
+                    })
+                },
+                get_register_captcha(){
+                    let has_err = false
+                    // 数据校验
+                    let username = this.formRegister.username.replace(' ', '')
+                    if(username.length <2 ){
+                        this.formRegister.username_err = '用户名需至少包含2个字符'
+                        has_err = true
+                    }
+                    if(username.length >20 ){
+                        this.formRegister.username_err = '用户名不能超过20个字符'
+                        has_err = true
+                    }
+                    // 邮箱校验
+                    let email = this.formRegister.email.replace(' ', '')
+                    let email_pattern = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/
+                    if(!email_pattern.test(email)){
+                        this.formRegister.email_err = '邮箱格式不正确'
+                        has_err = true
+                    }
+                    // 密码校验
+                    let password = this.formRegister.password.trim()
+                    if(password.length < 8){
+                        has_err =true
+                        this.formRegister.password_err = '密码长度不能少于8个字符'
+                    }
+                    if(has_err){
+                        return
+                    }
+                    axios.get('/api/auth/')
+                    .then(rsp=>{
+                        axios.post('/api/captcha/register/', {email: this.formRegister.email})
+                        .then(rsp=>{
+                            this.formRegister.has_send_register_captcha = true
+                        })
+                        .catch(err=>{
+
+                        })
+                    })
+
+                },
+                switch_to_reset_password(){
+                    this.pageName = 'reset_password'
+                },
+                get_reset_password_captcha(){
+                    let has_form_err= false
+                    // 确认密码时候，校验数据
+                    let email = this.formResetPassword.email.trim()
+                    let new_pwd1 = this.formResetPassword.new_pwd1.trim()
+                    let new_pwd2 = this.formResetPassword.new_pwd2.trim()
+                    // 邮箱校验
+                    let email_pattern = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/
+                    if(!email_pattern.test(email.trim())){
+                        this.formResetPassword.err_email = '邮箱格式不合法'
+                        has_form_err = true
+                    }
+                    // 密码1长度校验
+                    console.log(new_pwd1.length)
+                    if(new_pwd1.length<8){
+                        this.formResetPassword.err_new_pwd1 = '密码长度不能低于8位'
+                        has_form_err = true
+                    }
+                    if(new_pwd1.length>20){
+                        this.formResetPassword.err_new_pwd1 = '密码长度不能多于20位'
+                        has_form_err = true
+                    }
+                    // 密码2长度校验
+                    if(new_pwd2.length<8){
+                        this.formResetPassword.err_new_pwd2 = '密码长度不能低于8位'
+                        has_form_err = true
+                    }
+                    if(new_pwd2.length>20){
+                        this.formResetPassword.err_new_pwd2 = '密码长度不能多于20位'
+                        has_form_err = true
+                    }
+                    // 确认密码校验
+                    console.log(new_pwd1, new_pwd2)
+                    if(new_pwd1 != new_pwd2){
+                        this.formResetPassword.err_new_pwd1 = '两次密码输入不一致'
+                        this.formResetPassword.err_new_pwd2 = '两次密码输入不一致'
+                        has_form_err = true
+                    }
+                    if(has_form_err){
+                        return
+                    }else {
+                        this.clear_errmsg_reset_password()
+                    }
+
+                    axios.get('/api/auth/')
+                    .then(rsp=>{
+                        axios.post('/api/captcha/reset_password/',{
+                            email: this.formResetPassword.email
+                        })
+                        .then(rsp=>{
+                            let data = rsp.data
+                            if(data.msg === '验证码已发送至邮箱'){
+                                // 显示验证码输入框
+                                this.formResetPassword.hideCaptchaInput =false
+                                // 显示确认修改按钮
+                                this.formResetPassword.hideSubmitButton =false
+                            }
+                        })
+                        .catch(callback=>{
+                            let detail = callback.response.data.detail
+                            if(detail){
+                                this.formResetPassword.err_other = detail
+                                this.formResetPassword.new_pwd1 = ''
+                                this.formResetPassword.new_pwd2 = ''
+                            }
+                        })
+                    })
+                },
+                clear_errmsg_reset_password(){
+                    this.formResetPassword.err_email = ''
+                    this.formResetPassword.err_new_pwd1 = ''
+                    this.formResetPassword.err_new_pwd2 = ''
+                    this.formResetPassword.err_other = ''
+                },
+                reset_password(){
+                    axios.post('/api/user/reset_password/', {
+                        'email': this.formResetPassword.email,
+                        'new_pwd1': this.formResetPassword.new_pwd1,
+                        'new_pwd2': this.formResetPassword.new_pwd2,
+                        'captcha': this.formResetPassword.captcha
+                    })
+                    .then(rsp=>{
+                        // 邮箱错误
+                        if(rsp.data.msg === '密码重置成功'){
+                            this.formResetPassword.showResetPasswordSuccessDialog = true
+                            setTimeout(function (){
+                                $(location).attr('href', '/my-admin/login/')
+                            }, 1500)
+                        }
+                    })
+                    .catch(callback=>{
+                        let detail = callback.response.data.detail
+                        if(detail === undefined){
+                            return
+                        }
+                        this.formResetPassword.captcha = ''
+                        this.formResetPassword.new_pwd1 = ''
+                        this.formResetPassword.new_pwd2 = ''
+                        this.formResetPassword.err_other = detail
+                    })
+                }
+            }
+        })
+    </script>
+    <script>
+        // 校验重置密码表单
+
+    </script>
+</body>
+{% endverbatim %}
+</html>

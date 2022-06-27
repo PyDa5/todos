@@ -1,0 +1,79 @@
+{% extends '../base.html' %}
+
+{% block my-app %}
+    <el-form style="width: 540px; padding-top: 20px" label-width="80px">
+        <el-form-item label="任务内容">
+            <el-input
+                    type="textarea"
+                    v-model="formNewTask.content"
+                    :autosize="{minRows:10,maxRows:15}"
+            ></el-input>
+        </el-form-item>
+        <el-form-item label="分类标签">
+            <el-select v-model="formNewTask.label_id">
+              <el-option v-for="item in lablesData" :label="item.label_name" :value="item.id"></el-option>
+            </el-select>
+
+        </el-form-item>
+        <el-form-item style="display: flex; justify-content: flex-end">
+            <el-button type="primary" v-on:click="new_task()">立即创建</el-button>
+        </el-form-item>
+    </el-form>
+{% endblock %}
+
+{%  block my-script %}
+    <script>
+        let vm = new Vue({
+            el: '#app',
+            data(){
+                return {
+                    formNewTask: {
+                        content: '',
+                        label_id: ''
+                    },
+                    lablesData: [],
+                    showNewTaskSuccess: false
+                }
+            },
+            methods: {
+                new_task(){
+                    axios.post('/api/todos/', {
+                        label_id: this.formNewTask.label_id,
+                        content: this.formNewTask.content
+                    })
+                    .then(rsp=>{
+                        this.formNewTask = {
+                            content: '',
+                            label_id: ''
+                        }
+                        this.$message({message: '创建成功', type: "success"})
+                    })
+                    .catch(ev=>{
+                        let detail = ev.response.data.detail
+                        let label_err = ev.response.data.label_id
+                        let content_err = ev.response.data.content
+                        if(detail != undefined){
+                            this.$message({message: detail, type: "error"})
+                        }
+                        if(label_err != undefined){
+                            this.$message({message: `<分类标签>${label_err[0]}`, type: "error"})
+                        }
+                        if(content_err != undefined){
+                            this.$message({message: `<任务内容>${content_err[0]}`, type: "error"})
+                        }
+                    })
+                }
+            }
+        })
+    </script>
+    <script>
+        // 获取分类标签
+        axios.get('/api/todos/labels/list/')
+        .then(rsp=>{
+            let data = rsp.data.data
+            vm.lablesData = data
+            console.log(rsp, data)
+        })
+
+    </script>
+{%  endblock %}
